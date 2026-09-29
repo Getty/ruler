@@ -1,0 +1,25 @@
+#!/bin/sh
+# ruler hook starter. Every path ends in exit 0.
+#
+# PostToolBatch and UserPromptSubmit fire all the time but matter only right
+# after a compaction, so they leave here unless a session is marked pending.
+
+[ -n "$CLAUDE_PLUGIN_DATA" ] || exit 0
+
+case "$1" in
+PostToolBatch | UserPromptSubmit)
+	set -- "$1" "$CLAUDE_PLUGIN_DATA"/pending/*
+	[ -e "$2" ] || exit 0
+	set -- "$1"
+	;;
+esac
+
+command -v python3 >/dev/null 2>&1 || exit 0
+
+root=${CLAUDE_PLUGIN_ROOT:-${0%/*}/..}
+PYTHONPATH="$root/lib${PYTHONPATH:+:$PYTHONPATH}"
+PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH PYTHONDONTWRITEBYTECODE
+
+python3 -s -m ruler.hook "$@"
+exit 0
