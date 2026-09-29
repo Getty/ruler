@@ -4,10 +4,13 @@ Claude Code plugin for the Getty marketplace. It keeps the **core** — the
 instruction files Claude Code loads at session start — in context across every
 compaction, and keeps copies of them out of the compaction summary.
 
-**[docs/design.md](docs/design.md) is the spec.** Read it in full before
-changing behaviour, adding a hook, writing a test or judging whether something
-is in scope. It is written in German: *Kern* = core, *Baustein* = building
-block, *Stufe* = stage.
+**[docs/design.md](docs/design.md) is the spec** — problem, scope, success
+criterion. It is written in German: *Kern* = core, *Baustein* = building block,
+*Stufe* = stage. How ruler works is in [docs/design/mechanism.md](docs/design/mechanism.md),
+what we measured in [docs/design/measurements.md](docs/design/measurements.md); the
+rules in `.claude/rules/` point there when you touch `lib/`, `hooks/` or `t/`. Read
+the index before judging whether something is in scope. Repeat a measurement with
+the skill `ruler-remeasure`.
 
 ## Status
 
@@ -24,7 +27,7 @@ forced-gap runs, see design, *Offen*. Update this paragraph when that changes.
   such fact in the design carries its date and Claude Code version.
 - **Fail open.** Every hook path exits 0. ruler uses documented hooks only,
   writes only under `${CLAUDE_PLUGIN_DATA}`, and starts neither network
-  connections nor subprocesses. Details: design, *Fehlerverhalten*.
+  connections nor subprocesses. Details: mechanism, *Fehlerverhalten*.
 - **The design stays true.** Findings go into `docs/design.md` in the same
   change as the code they affect; where code and design disagree, one of them
   is a bug.

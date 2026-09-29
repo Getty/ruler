@@ -16,6 +16,19 @@ that:
 
 When everything came back, ruler adds nothing.
 
+## Why
+
+The documentation says Claude Code re-injects `CLAUDE.md` and rules without
+`paths:` after a compaction. We looked at what actually happened: 40 compactions
+in 32 local session transcripts (Claude Code 2.1.257 to 2.1.283). In 5 of them
+instruction files that had been in context before were not attached afterwards —
+in one session `CLAUDE.md` and all rules, for the rest of the session. Without an
+instruction about them, five of six compaction summaries we produced also carried
+a copy of the files' content. A transcript does not prove the files were out of
+the model's context, and the sample is small; it is enough to make a check
+cheaper than the risk. How ruler works and how each fact was measured is in the
+design, which is in German: [docs/design.md](docs/design.md).
+
 ## What is covered
 
 **The core**: the instruction files Claude Code loads when a session starts.
@@ -92,11 +105,13 @@ every hook ends with exit code 0, whatever happens.
   compaction does not depend on it.
 - After a compaction you see ruler's list of files in the message that reports
   the compaction. Claude Code shows the output of every `PreCompact` hook there.
-- Measured with `claude -p`. Interactive sessions use the same hooks but have
-  not been measured separately.
+- Measured with `claude -p` and, for `/compact`, in an interactive session. The two
+  differ in when Claude Code reports the reloaded files, which is why ruler checks
+  at the second event. Automatic compaction in an interactive session has not been
+  measured separately.
 
-[docs/design.md](docs/design.md) has the reasoning and the measurements, in
-German.
+The reasoning and the measurements are in [docs/design.md](docs/design.md) and
+`docs/design/`, in German.
 
 ## Tests
 
