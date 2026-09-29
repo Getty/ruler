@@ -34,7 +34,12 @@ core: remove `paths:`, or move the text into the project's `CLAUDE.md`.
 
 ## Install
 
-ruler is not listed in a marketplace yet. Load it from a checkout:
+```
+/plugin marketplace add Getty/marketplace
+/plugin install ruler@getty
+```
+
+Or load it from a checkout, without a marketplace:
 
 ```sh
 claude --plugin-dir /path/to/ruler

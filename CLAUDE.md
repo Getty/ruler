@@ -11,9 +11,10 @@ block, *Stufe* = stage.
 
 ## Status
 
-2026-09-29: stages 0 to 3 are done, stage 4 in part: acceptance with `claude -p`
-and the README. Open: acceptance in an interactive session and the marketplace
-entry. Update this paragraph when a stage completes.
+2026-09-29: stages 0 to 3 are done, stage 4 but for one point: acceptance with
+`claude -p`, the README and the marketplace entry (`ruler@getty`) are there,
+acceptance in an interactive session is open. Update this paragraph when a
+stage completes.
 
 ## Rules
 
@@ -31,7 +32,6 @@ entry. Update this paragraph when a stage completes.
 - The design is German; code, comments, README, commit messages and every text
   ruler puts in front of the model are English.
 - Conventional commits, `--signoff`.
-- The entry in `~/dev/marketplace` waits for Getty's explicit go.
 
 ## This file is core
 

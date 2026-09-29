@@ -5,8 +5,8 @@ Projekt-Instruktionen** — CLAUDE.md und die Rules ohne `paths:` — nach jeder
 Compaction wieder im Kontext steht, und dass die Compaction-Zusammenfassung keine
 veralteten Kopien davon mitschleppt. Codex ist in v1 bewusst draußen (siehe unten).
 
-Stand: 2026-09-29, Claude Code 2.1.284. Umgesetzt bis Stufe 4; offen sind die Abnahme in
-einer interaktiven Session und der Marketplace-Eintrag.
+Stand: 2026-09-29, Claude Code 2.1.284. Umgesetzt bis Stufe 4 und als `ruler@getty` im
+Marketplace; offen ist die Abnahme in einer interaktiven Session.
 
 ## Problem, belegt
 
@@ -336,7 +336,8 @@ Compaction pro Lauf):
   nach — nach der Auto-Compaction am zweiten `PostToolBatch`, nach `/compact` am
   `UserPromptSubmit`; der per `include` gemeldete Import wird nicht nachgereicht.
 
-README steht. Offen: Abnahme in einer interaktiven Session, Eintrag im Marketplace.
+README steht. Im Marketplace eingetragen am 2026-09-29, nur für Claude Code. Offen:
+Abnahme in einer interaktiven Session.
 
 ## Erfolgskriterium
 
