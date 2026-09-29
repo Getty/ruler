@@ -25,7 +25,8 @@ printf -- '---\npaths:\n  - "*.py"\n---\nMarker-PATHRULE: PINEAPPLE-4\n' > .clau
 tmux new-session -d -s rt -x 200 -y 50 "claude --plugin-dir <ruler checkout> --model haiku"
 ```
 
-Expected before any compaction: markers 1–3 known, 4 not.
+Expected before any compaction: markers 1–3 known, 4 not. Check the second part in
+the transcript: `py.md` must appear in no `instructions` line of `timeline.py`.
 
 ## Drive it
 
@@ -37,7 +38,7 @@ tmux capture-pane -t rt -p | grep -v '^$' | tail -20    # look after every step
   (the directory is yours).
 - Send text and Enter as **two** `send-keys` calls with a `sleep 1` between, and use
   `C-m`: a single `"text" Enter` leaves the text in the input box unsent.
-- Sequence: a short prompt → `/compact` (wait 40–50 s) → two more prompts → `/exit`.
+- Sequence: a short prompt → `/compact` (wait until the pane shows `Compacted`) → two more prompts → `/exit`.
   Look at the pane for ruler's `PreCompact … completed successfully` block after `/compact`.
 
 ## Read the result
@@ -46,12 +47,13 @@ Inspect before `/exit` (SessionEnd deletes the log):
 
 ```sh
 ls ~/.claude/plugins/data/ruler-inline/pending     # empty = check done
-cut -c1-120 ~/.claude/plugins/data/ruler-inline/sessions/*.jsonl
+<ruler checkout>/.claude/skills/ruler-remeasure/scripts/log.py
 cd proj && <ruler checkout>/.claude/skills/ruler-remeasure/scripts/timeline.py
 ```
 
-Run `timeline.py` (execute, don't read) from the project directory. It lists prompts,
-Claude Code's own `instructions` attachments and every `RULER ATTACH`.
+Execute both scripts, don't read them. `log.py` prints ruler's event log; `timeline.py`
+(from the project directory) lists prompts, Claude Code's own `instructions`
+attachments and every `RULER ATTACH`.
 
 Healthy: after the compaction the log has a `loaded` line with `load_reason: compact`
 for every core file, `instructions` follows the next prompt, `ruler attachments: 0`,
@@ -74,7 +76,7 @@ Claude Code reported the files.
 ## Finish
 
 `tmux send-keys -t rt "/exit"`, `C-m`, then `tmux kill-session -t rt`. Write the result
-into `docs/design/measurements.md` as the next *Messung N* with today's date and the
+into `docs/design/measurements.md` as the next *Messung N* with the date the run started and the
 version from the pane header (`claude --version`), in the same commit as any code
 change it caused. If the result contradicts `docs/design/mechanism.md`, one of them is
 a bug — fix the mechanism text too.
