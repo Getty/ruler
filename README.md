@@ -73,10 +73,11 @@ context, before and after.
 | `SessionStart` (`startup`) | Removes logs older than seven days. |
 | `SessionEnd` | Removes the log of the session. |
 
-After a compaction in the middle of a turn, Claude Code reports the reloaded
-files only once the first batch of tool calls is through. ruler therefore checks
-at the second batch. If a file is really missing at that point, two requests to
-the model have run without it.
+Claude Code reports the reloaded files only after the first hook that follows a
+compaction has returned. ruler therefore checks at the second one: the next
+prompt, or the second batch of tool calls. If a file is really missing at that
+point, one prompt (after `/compact`) or two requests to the model (compaction in
+the middle of a turn) have run without it.
 
 ruler writes only below `${CLAUDE_PLUGIN_DATA}`, opens no network connection, and
 every hook ends with exit code 0, whatever happens.

@@ -88,8 +88,10 @@ def check(payload, data, session_id, stdout, environ):
     if state is None:
         return
     event = payload["hook_event_name"]
-    if event == "PostToolBatch" and state == 0:
-        # Claude Code reports the reloaded files only after this hook has returned.
+    if state == 0:
+        # Claude Code reports the reloaded files only after the hook that follows the
+        # compaction has returned (measured for both events), so the first one only
+        # moves the marker.
         log.set_pending(data, session_id, 1)
         return
     files = _missing(data, session_id, payload, environ)

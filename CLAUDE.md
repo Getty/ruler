@@ -11,10 +11,10 @@ block, *Stufe* = stage.
 
 ## Status
 
-2026-09-29: stages 0 to 3 are done, stage 4 but for one point: acceptance with
-`claude -p`, the README and the marketplace entry (`ruler@getty`) are there,
-acceptance in an interactive session is open. Update this paragraph when a
-stage completes.
+2026-09-29: all stages are done, accepted with `claude -p` and in an interactive
+session (which found and fixed a duplicate re-attach after `/compact`); README and
+marketplace entry (`ruler@getty`) are there. Open: interactive auto-compaction and
+forced-gap runs, see design, *Offen*. Update this paragraph when that changes.
 
 ## Rules
 

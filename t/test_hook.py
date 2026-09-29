@@ -188,6 +188,23 @@ class SingleHookTest(HookTest):
         self.assertIsNone(log.get_pending(self.data, self.sid))
         self.assertEqual(self.run_hook("UserPromptSubmit", prompt="x"), "")
 
+    def test_first_prompt_after_a_compaction_only_moves_the_marker(self):
+        # Interactive, Claude Code 2.1.285: the reloaded files are reported only after
+        # the UserPromptSubmit hook has returned, so checking there always runs into the wait.
+        self.run_hook("SessionStart", source="compact")
+        self.assertEqual(log.get_pending(self.data, self.sid), 0)
+        self.assertEqual(self.run_hook("UserPromptSubmit", prompt="x"), "")
+        self.assertEqual(log.get_pending(self.data, self.sid), 1)
+        context = json.loads(self.run_hook("UserPromptSubmit", prompt="y"))["hookSpecificOutput"]
+        self.assertIn("CORE-ROOT-ALPHA", context["additionalContext"])
+        self.assertIsNone(log.get_pending(self.data, self.sid))
+
+    def test_prompt_then_batch_checks_at_the_batch(self):
+        self.run_hook("SessionStart", source="compact")
+        self.assertEqual(self.run_hook("UserPromptSubmit", prompt="x"), "")
+        output = json.loads(self.run_hook("PostToolBatch", tool_calls=[]))
+        self.assertEqual(output["hookSpecificOutput"]["hookEventName"], "PostToolBatch")
+
     def test_unreadable_log_attaches_the_whole_core(self):
         os.makedirs(log.log_path(self.data, self.sid))
         log.set_pending(self.data, self.sid, 1)

@@ -5,8 +5,9 @@ Projekt-Instruktionen** — CLAUDE.md und die Rules ohne `paths:` — nach jeder
 Compaction wieder im Kontext steht, und dass die Compaction-Zusammenfassung keine
 veralteten Kopien davon mitschleppt. Codex ist in v1 bewusst draußen (siehe unten).
 
-Stand: 2026-09-29, Claude Code 2.1.284. Umgesetzt bis Stufe 4 und als `ruler@getty` im
-Marketplace; offen ist die Abnahme in einer interaktiven Session.
+Stand: 2026-09-29, Claude Code 2.1.284 (`claude -p`) und 2.1.285 (interaktiv). Umgesetzt
+und als `ruler@getty` im Marketplace; abgenommen mit `claude -p` und in einer interaktiven
+Session.
 
 ## Problem, belegt
 
@@ -166,22 +167,27 @@ prüfen. Geprüft wird am ersten Ereignis, an dem die Meldungen da sein können:
 
 | Wie es nach der Compaction weitergeht | Reihenfolge | Prüfung |
 |---|---|---|
-| neuer Prompt (nach `/compact` oder Auto-Compaction am Turn-Ende) | `InstructionsLoaded` … und `UserPromptSubmit` nahezu gleichzeitig | im `UserPromptSubmit`-Hook |
-| Turn läuft weiter (Auto-Compaction mitten im Turn) | Tools → `PostToolUse` je Tool → `PostToolBatch` → `InstructionsLoaded` … → nächste Modell-Anfrage | im `PostToolBatch`-Hook des **zweiten** Tool-Batches |
+| neuer Prompt (nach `/compact` oder Auto-Compaction am Turn-Ende) | `UserPromptSubmit` → (Hook kehrt zurück) → `InstructionsLoaded` … | am **zweiten** Ereignis danach: dem nächsten `UserPromptSubmit` oder dem ersten `PostToolBatch` |
+| Turn läuft weiter (Auto-Compaction mitten im Turn) | Tools → `PostToolUse` je Tool → `PostToolBatch` → (Hook kehrt zurück) → `InstructionsLoaded` … → nächste Modell-Anfrage | im `PostToolBatch` des **zweiten** Tool-Batches |
 
-Die Markierung trägt dafür einen Zustand: `SessionStart` (compact) setzt `0`; der erste
-`PostToolBatch` danach setzt nur `1` (Claude Code wartet auf den Hook, die Meldungen
-kommen erst nach seiner Rückkehr); geprüft wird bei `UserPromptSubmit` in jedem Zustand
-und bei `PostToolBatch` im Zustand `1`. `PostToolBatch` statt `PostToolUse`, weil er pro
-Batch genau einmal feuert — parallele Tool-Aufrufe lösen sonst mehrere Prüfungen
-gleichzeitig aus.
+Die Markierung trägt dafür einen Zustand: `SessionStart` (compact) setzt `0`; das erste
+`UserPromptSubmit` oder `PostToolBatch` danach setzt nur `1` (Claude Code wartet auf den
+Hook, die Meldungen kommen erst nach seiner Rückkehr); geprüft wird beim nächsten von
+beiden. `PostToolBatch` statt `PostToolUse`, weil er pro Batch genau einmal feuert —
+parallele Tool-Aufrufe lösen sonst mehrere Prüfungen gleichzeitig aus.
+
+(Bis zur Abnahme am 2026-09-29 prüfte `UserPromptSubmit` sofort, weil die `claude -p`-
+Messung die Meldungen um den Hook herum zeigte. Interaktiv kommen sie erst danach: die
+Prüfung wartete die ganze Sekunde, fand nichts und reichte den ganzen Kern doppelt nach.
+Messung 7.)
 
 Die `InstructionsLoaded`-Hooks laufen neben dem prüfenden Hook her. Fehlt bei der
 Prüfung etwas, wartet sie deshalb bis zu 1 s (in Schritten von 50 ms) auf nachkommende
 Zeilen, bevor sie nachreicht.
 
-Preis: Fehlt nach einer Auto-Compaction mitten im Turn wirklich etwas, laufen zwei
-Modell-Anfragen ohne die Datei, bevor ruler sie nachreichen kann. Früher ginge es nur
+Preis: Fehlt nach einer Compaction wirklich etwas, läuft ein Prompt (nach `/compact`)
+bzw. laufen zwei Modell-Anfragen (Auto-Compaction mitten im Turn) ohne die Datei, bevor
+ruler sie nachreichen kann. Früher ginge es nur
 blind — dann stünde in jedem Normalfall der ganze Kern doppelt im Kontext.
 
 Heißer Pfad: `PostToolBatch` und `UserPromptSubmit` feuern ständig. Der `sh`-Starter
@@ -269,45 +275,24 @@ weiter. Kleine Stichprobe, ein Modell. Die Payloads liegen in `t/fixtures/`.
    Die User-Ebene (`~/.claude/CLAUDE.md`, `~/.claude/rules/`) kam im Aufbau nicht vor.
 6. **Fortsetzen.** `--resume` meldet alle Kerndateien erneut mit `session_start` (zweimal
    hintereinander), vor und nach `SessionStart` (resume).
+7. **Interaktiv** (2026-09-29, Claude Code 2.1.285, tmux, Haiku, ein Lauf). Nach `/compact`
+   und dem nächsten Prompt meldete Claude Code alle Kerndateien mit `compact`/`include`,
+   aber erst **nach** der Rückkehr des `UserPromptSubmit`-Hooks (Transkript: Prompt
+   21:00:26,488; rulers Anhang +1,06 s = volle Wartezeit; die eigene `instructions`-
+   Meldung +43 ms danach; Log-Zeilen 70–90 ms nach dem Anhang). Das Muster ist das von
+   `PostToolBatch` in Messung 1; ob der Unterschied zu `claude -p` am Modus oder an der
+   Version liegt, ist nicht getrennt. Nach der Korrektur (erstes Ereignis setzt nur die
+   Markierung): kein Anhang, `pending/` leer, das Modell findet jede Datei einmal.
 
 ## Stufen
 
-### Stufe 0 — Live festnageln (vor jedem Produktcode)
+Alle Stufen sind erledigt (2026-09-29); die Messungen oben sind das Ergebnis von Stufe 0.
 
-Ein Aufzeichnungs-Hook (schreibt nur stdin + Zeitstempel weg) auf `InstructionsLoaded`,
-`PreCompact`, `PostCompact`, `SessionStart`, `PostToolUse`, `UserPromptSubmit`, in einem
-Wegwerf-Projekt mit CLAUDE.md, einer Rule ohne und einer mit `paths:`, einem `@import`
-und einer verschachtelten CLAUDE.md. Eine Session, manuelles `/compact`, dann eine
-provozierte Auto-Compaction. Festzuhalten, jeweils mit Claude-Code-Version:
-
-1. Reihenfolge und Zeitabstand: `PreCompact` → … → `InstructionsLoaded`(compact) vs.
-   `SessionStart`(compact) vs. `PostCompact`. Stehen die compact-Zeilen vor `SessionStart`
-   auf der Platte? → entscheidet Baustein 3.
-2. Feuert `InstructionsLoaded`(compact) für jede Kerndatei? Auch für `@imports` (mit
-   welchem `load_reason`)?
-3. Obergrenze für `additionalContext` (`SessionStart`, `PostToolUse`): ab welcher Länge
-   wird gekürzt oder in eine Datei ausgelagert?
-4. Bleiben `custom_instructions` über mehrere Compactions bestehen (→ Marker nötig)?
-   Wirkt `newCustomInstructions` auch bei `auto`?
-5. Deckt sich die Ersatz-Ermittlung von der Platte mit den `session_start`-Meldungen?
-
-Die aufgezeichneten Payloads werden zu Fixtures in `t/fixtures/`. Ergebnisse kommen mit
-Datum und Version in dieses Dokument, Baustein 3 wird entsprechend festgelegt.
-
-**Erledigt 2026-09-29**, Ergebnisse unter *Messungen*.
-
-### Stufe 1 — Mitschreiben, Kern ableiten, Aufräumen
-
-Bausteine 1 und 4, Tests gegen Fixtures. **Erledigt 2026-09-29.**
-
-### Stufe 2 — `PreCompact`
-
-Baustein 2, Tests für Anhängen, Idempotenz, `null`-Eingabe. **Erledigt 2026-09-29.**
-
-### Stufe 3 — Prüfen und nachreichen
-
-Baustein 3 am in Stufe 0 bestimmten Einfügepunkt; Größenobergrenze; Ersatz „ganzer Kern“.
-**Erledigt 2026-09-29.**
+- **Stufe 0** — Aufzeichnungs-Hook, Reihenfolge, Vollständigkeit, Obergrenze,
+  `custom_instructions`, Ersatz von der Platte festnageln; Payloads → `t/fixtures/`.
+- **Stufe 1** — Mitschreiben, Kern ableiten, Aufräumen (Bausteine 1 und 4).
+- **Stufe 2** — `PreCompact` (Baustein 2).
+- **Stufe 3** — Prüfen und nachreichen (Baustein 3), Größenobergrenze, Ersatz „ganzer Kern“.
 
 ### Stufe 4 — Live-Abnahme, README, Marketplace
 
@@ -336,8 +321,13 @@ Compaction pro Lauf):
   nach — nach der Auto-Compaction am zweiten `PostToolBatch`, nach `/compact` am
   `UserPromptSubmit`; der per `include` gemeldete Import wird nicht nachgereicht.
 
-README steht. Im Marketplace eingetragen am 2026-09-29, nur für Claude Code. Offen:
-Abnahme in einer interaktiven Session.
+README steht. Im Marketplace eingetragen am 2026-09-29, nur für Claude Code.
+
+**Interaktive Abnahme 2026-09-29** (2.1.285): fand den Fehler aus Messung 7; nach der
+Korrektur nach `/compact` und zwei weiteren Prompts nichts nachgereicht, alle drei
+Kerndateien einmal im Kontext, Datenverzeichnis nach `SessionEnd` leer. Nicht
+interaktiv wiederholt: Fehlbestand und Auto-Compaction mitten im Turn (durch Unit-Tests
+gegen die `claude -p`-Fixtures gedeckt).
 
 ## Erfolgskriterium
 
@@ -355,8 +345,8 @@ enthält keine Kopie ihres Inhalts.
   Zuruf wiederholen. Ob Claude Code in solchen Fällen trotzdem `compact` meldet — ruler
   den Fehlbestand dann also nicht bemerkt —, ist ungeklärt. Messung 1 zeigt, dass Meldung
   und Kontext zeitlich auseinanderfallen können.
-- **Interaktive Session.** Alle Messungen liefen mit `claude -p`. `/clear` und `/resume`
-  innerhalb einer Session sind nicht gemessen; der Ersatz von der Platte fängt ein leeres
-  Log auf.
+- **Interaktive Session.** Nur `/compact` ist interaktiv gemessen (Messung 7). Auto-
+  Compaction, Fehlbestand, `/clear` und `/resume` innerhalb einer Session nicht; der
+  Ersatz von der Platte fängt ein leeres Log auf.
 - **`PreCompact`-stdout ist undokumentiert** (Baustein 2).
 
