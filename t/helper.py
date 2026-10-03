@@ -21,14 +21,29 @@ PROJECT = RECORDED + "/probe"
 
 
 def payloads(name, root=None):
-    """The payloads of a fixture, optionally moved to another directory."""
+    """The payloads of a fixture, optionally moved to another directory.
+
+    Moved paths take the separator of this system, as Claude Code reports
+    them: C:\\...\\probe\\CLAUDE.md on Windows.
+    """
     found = []
     with open(os.path.join(FIXTURES, name + ".jsonl"), encoding="utf-8") as fh:
         for line in fh:
+            payload = json.loads(line)["payload"]
             if root is not None:
-                line = line.replace(RECORDED, root)
-            found.append(json.loads(line)["payload"])
+                payload = _move(payload, root)
+            found.append(payload)
     return found
+
+
+def _move(value, root):
+    if isinstance(value, dict):
+        return {k: _move(v, root) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_move(v, root) for v in value]
+    if isinstance(value, str) and value.startswith(RECORDED):
+        return root + value[len(RECORDED):].replace("/", os.sep)
+    return value
 
 
 def entries(name, root=None):

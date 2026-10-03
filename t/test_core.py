@@ -92,12 +92,12 @@ class DiscoverTest(unittest.TestCase):
 
     def discover(self, cwd):
         found = core.discover(os.path.join(self.root, cwd), self.home)
-        return [os.path.relpath(p, self.root) for p in found if p.startswith(self.root)]
+        return [os.path.relpath(p, self.root).replace(os.sep, "/") for p in found if p.startswith(self.root)]
 
     def test_matches_what_claude_code_loaded_at_session_start(self):
         helper.tree(os.path.join(self.root, "work"), helper.PROBE)
-        reported = [os.path.relpath(p, R) for p in core.derive(helper.entries("startup"))]
-        found = [os.path.relpath(p, "work") for p in self.discover("work/probe")]
+        reported = [os.path.relpath(p, R).replace(os.sep, "/") for p in core.derive(helper.entries("startup"))]
+        found = [os.path.relpath(p, "work").replace(os.sep, "/") for p in self.discover("work/probe")]
         self.assertEqual(sorted(found), sorted(reported))
 
     def test_order(self):
@@ -162,7 +162,11 @@ class DiscoverTest(unittest.TestCase):
 
     def test_rules_behind_a_symlink_cycle(self):
         helper.tree(self.root, {"p/.claude/rules/a.md": "a\n", "p/.claude/rules/notes.txt": "x\n"})
-        os.symlink(os.path.join(self.root, "p/.claude/rules"), os.path.join(self.root, "p/.claude/rules/loop"))
+        try:
+            os.symlink(os.path.join(self.root, "p/.claude/rules"), os.path.join(self.root, "p/.claude/rules/loop"))
+        except OSError as e:
+            # Windows without developer mode or admin rights cannot create one.
+            self.skipTest("no symlinks here: %s" % e)
         self.assertEqual(self.discover("p"), ["p/.claude/rules/a.md"])
 
     def test_nothing_there(self):
@@ -200,14 +204,14 @@ class OfTest(unittest.TestCase):
     def test_empty_log_falls_back_to_disk(self):
         self.assertEqual(
             core.of([], self.cwd, self.root),
-            [self.cwd + "/CLAUDE.md", self.cwd + "/.claude/rules/r.md"],
+            [os.path.join(self.cwd, "CLAUDE.md"), os.path.join(self.cwd, ".claude", "rules", "r.md")],
         )
 
     def test_log_without_session_start_is_completed_from_disk(self):
-        log = [{"event": "compact"}, loaded(self.cwd + "/CLAUDE.md", "compact"), loaded("/new.md", "compact")]
+        log = [{"event": "compact"}, loaded(os.path.join(self.cwd, "CLAUDE.md"), "compact"), loaded("/new.md", "compact")]
         self.assertEqual(
             core.of(log, self.cwd, self.root),
-            [self.cwd + "/CLAUDE.md", self.cwd + "/.claude/rules/r.md", "/new.md"],
+            [os.path.join(self.cwd, "CLAUDE.md"), os.path.join(self.cwd, ".claude", "rules", "r.md"), "/new.md"],
         )
 
     def test_no_cwd(self):

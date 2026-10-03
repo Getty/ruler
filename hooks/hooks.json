@@ -5,7 +5,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/ruler InstructionsLoaded",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ruler",
+            "args": ["InstructionsLoaded"],
             "timeout": 5,
             "async": true
           }
@@ -17,7 +18,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/ruler PreCompact",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ruler",
+            "args": ["PreCompact"],
             "timeout": 5
           }
         ]
@@ -29,7 +31,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/ruler SessionStart",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ruler",
+            "args": ["SessionStart"],
             "timeout": 5
           }
         ]
@@ -40,7 +43,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/ruler PostToolBatch",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ruler",
+            "args": ["PostToolBatch"],
             "timeout": 5
           }
         ]
@@ -51,7 +55,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/ruler UserPromptSubmit",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ruler",
+            "args": ["UserPromptSubmit"],
             "timeout": 5
           }
         ]
@@ -62,7 +67,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/ruler SessionEnd",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ruler",
+            "args": ["SessionEnd"],
             "timeout": 5
           }
         ]

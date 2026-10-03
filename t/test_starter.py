@@ -8,7 +8,11 @@ import unittest
 import helper
 from ruler import hook, log
 
-STARTER = os.path.join(helper.ROOT, "hooks", "ruler")
+# Claude Code on Windows starts hooks/ruler.exe (winlaunch) for this entry;
+# CreateProcess would pick the sh script itself if named without .exe.
+EXE = ".exe" if os.name == "nt" else ""
+STARTER = os.path.join(helper.ROOT, "hooks", "ruler" + EXE)
+POSIX_ONLY = unittest.skipIf(os.name == "nt", "fake python3 is a sh script; winlaunch tests cover this on Windows")
 
 
 class StarterTest(unittest.TestCase):
@@ -34,16 +38,16 @@ class StarterTest(unittest.TestCase):
         return done.stdout
 
     def test_writes_the_log(self):
-        self.start("InstructionsLoaded", {"file_path": self.cwd + "/CLAUDE.md", "load_reason": "session_start",
+        self.start("InstructionsLoaded", {"file_path": os.path.join(self.cwd, "CLAUDE.md"), "load_reason": "session_start",
                                           "memory_type": "Project"})
         entries = log.read(self.data, "abc")
         self.assertEqual(len(entries), 1)
-        self.assertEqual(entries[0]["file_path"], self.cwd + "/CLAUDE.md")
+        self.assertEqual(entries[0]["file_path"], os.path.join(self.cwd, "CLAUDE.md"))
 
     def test_whole_round(self):
-        self.start("InstructionsLoaded", {"file_path": self.cwd + "/CLAUDE.md", "load_reason": "session_start"})
+        self.start("InstructionsLoaded", {"file_path": os.path.join(self.cwd, "CLAUDE.md"), "load_reason": "session_start"})
         block = self.start("PreCompact", {"trigger": "manual", "custom_instructions": None})
-        self.assertIn("- " + self.cwd + "/CLAUDE.md\n", block)
+        self.assertIn("- " + os.path.join(self.cwd, "CLAUDE.md") + "\n", block)
         self.start("SessionStart", {"source": "compact"})
         self.assertEqual(self.start("PostToolBatch", {"tool_calls": []}), "")
         output = json.loads(self.start("PostToolBatch", {"tool_calls": []}))
@@ -74,6 +78,7 @@ class StarterTest(unittest.TestCase):
         for event in hook.HANDLERS:
             self.assertEqual(self.start(event, text="not json"), "")
 
+    @POSIX_ONLY
     def test_hot_path_does_not_start_python(self):
         bin_dir = os.path.join(self.root, "bin")
         started = os.path.join(self.root, "started")
@@ -98,6 +103,7 @@ class StarterTest(unittest.TestCase):
         for event in hook.HANDLERS:
             self.assertEqual(self.start(event, environ={"PATH": empty}), "")
 
+    @POSIX_ONLY
     def test_python_that_fails(self):
         bin_dir = os.path.join(self.root, "bin")
         os.makedirs(bin_dir)
@@ -113,10 +119,10 @@ class StarterTest(unittest.TestCase):
                         ignore=shutil.ignore_patterns("__pycache__"))
         env = {"PATH": os.environ["PATH"], "HOME": self.root, "CLAUDE_PLUGIN_DATA": self.data}
         payload = {"session_id": "abc", "cwd": self.cwd, "hook_event_name": "PreCompact", "trigger": "auto"}
-        done = subprocess.run([os.path.join(copy, "hooks", "ruler"), "PreCompact"], input=json.dumps(payload),
+        done = subprocess.run([os.path.join(copy, "hooks", "ruler" + EXE), "PreCompact"], input=json.dumps(payload),
                               env=env, capture_output=True, text=True, timeout=20)
         self.assertEqual(done.returncode, 0)
-        self.assertIn("- " + self.cwd + "/CLAUDE.md\n", done.stdout)
+        self.assertIn("- " + os.path.join(self.cwd, "CLAUDE.md") + "\n", done.stdout)
 
 
 class HooksJsonTest(unittest.TestCase):
@@ -133,7 +139,9 @@ class HooksJsonTest(unittest.TestCase):
             self.assertEqual(len(groups[0]["hooks"]), 1)
             entry = groups[0]["hooks"][0]
             self.assertEqual(entry["type"], "command")
-            self.assertEqual(entry["command"], '"${CLAUDE_PLUGIN_ROOT}"/hooks/ruler ' + event)
+            # Exec form: hooks/ruler on Linux and macOS, hooks/ruler.exe on Windows.
+            self.assertEqual(entry["command"], "${CLAUDE_PLUGIN_ROOT}/hooks/ruler")
+            self.assertEqual(entry["args"], [event])
             self.assertEqual(entry["timeout"], 5)
             self.assertEqual(entry.get("async", False), event == "InstructionsLoaded")
 

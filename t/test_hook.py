@@ -36,9 +36,9 @@ class HookTest(unittest.TestCase):
 
     def core(self):
         return [
-            self.project + "/CLAUDE.md",
-            self.project + "/docs/imported.md",
-            self.project + "/.claude/rules/core-rule.md",
+            os.path.join(self.project, "CLAUDE.md"),
+            os.path.join(self.project, "docs", "imported.md"),
+            os.path.join(self.project, ".claude", "rules", "core-rule.md"),
         ]
 
     def replay(self, name, drop=None, until=None):
@@ -104,9 +104,10 @@ class RecordedSessionTest(HookTest):
         )
         self.assertEqual(
             self.context(printed, "PostToolBatch"),
-            "Project instructions from %s/.claude/rules/core-rule.md "
+            "Project instructions from %s "
             "(re-attached by ruler after compaction):\n\n"
-            "# core rule\n\nRule without paths. Marker: CORE-RULE-CHARLIE." % self.project,
+            "# core rule\n\nRule without paths. Marker: CORE-RULE-CHARLIE."
+            % os.path.join(self.project, ".claude", "rules", "core-rule.md"),
         )
 
     def test_everything_missing_after_auto_compaction(self):
@@ -130,9 +131,10 @@ class RecordedSessionTest(HookTest):
         printed = self.replay("manual-compact", drop=second_include)
         self.assertEqual(
             self.context(printed, "UserPromptSubmit"),
-            "Project instructions from %s/docs/imported.md "
+            "Project instructions from %s "
             "(re-attached by ruler after compaction):\n\n"
-            "# imported\n\nImported from CLAUDE.md. Marker: CORE-IMPORT-BRAVO." % self.project,
+            "# imported\n\nImported from CLAUDE.md. Marker: CORE-IMPORT-BRAVO."
+            % os.path.join(self.project, "docs", "imported.md"),
         )
 
     def test_attached_once(self):
@@ -143,12 +145,12 @@ class RecordedSessionTest(HookTest):
         helper.tree(self.project, {"CLAUDE.md": "changed during the session\n"})
         printed = self.replay(
             "manual-compact",
-            drop=lambda p: p.get("load_reason") == "compact" and p["file_path"].endswith("probe/CLAUDE.md"),
+            drop=lambda p: p.get("load_reason") == "compact" and p["file_path"].endswith(os.path.join("probe", "CLAUDE.md")),
         )
         self.assertTrue(self.context(printed, "UserPromptSubmit").endswith("\n\nchanged during the session"))
 
     def test_deleted_file_is_skipped(self):
-        os.remove(self.project + "/.claude/rules/core-rule.md")
+        os.remove(os.path.join(self.project, ".claude", "rules", "core-rule.md"))
         printed = self.replay("manual-compact", drop=lambda p: p.get("load_reason") == "compact")
         context = self.context(printed, "UserPromptSubmit")
         self.assertIn("CORE-ROOT-ALPHA", context)
