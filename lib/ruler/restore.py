@@ -14,12 +14,12 @@ def reloaded(entries):
     for index, entry in enumerate(entries):
         if entry.get("event") == "compact":
             last = index
-    return {entry["file_path"] for entry in core.loads(entries[last + 1:])}
+    return {core.key(entry["file_path"]) for entry in core.loads(entries[last + 1:])}
 
 
 def missing(entries, files):
     back = reloaded(entries)
-    return [path for path in files if path not in back]
+    return [path for path in files if core.key(path) not in back]
 
 
 def render(path, text):

@@ -109,12 +109,17 @@ def session_end(payload, data, session_id, stdout, environ):
     log.cleanup(data, session_id)
 
 
+def _home(environ):
+    # Windows without Git Bash starts hooks with no HOME at all.
+    return environ.get("HOME") or os.path.expanduser("~")
+
+
 def _core(data, session_id, payload, environ):
     try:
         entries = log.read(data, session_id)
     except (OSError, UnicodeError):
         entries = []
-    return core.of(entries, payload.get("cwd"), environ.get("HOME"))
+    return core.of(entries, payload.get("cwd"), _home(environ))
 
 
 def _missing(data, session_id, payload, environ):
@@ -124,8 +129,8 @@ def _missing(data, session_id, payload, environ):
             entries = log.read(data, session_id)
         except (OSError, UnicodeError):
             # The check cannot be evaluated: better twice than not at all.
-            return core.discover(payload.get("cwd") or os.getcwd(), environ.get("HOME"))
-        files = restore.missing(entries, core.of(entries, payload.get("cwd"), environ.get("HOME")))
+            return core.discover(payload.get("cwd") or os.getcwd(), _home(environ))
+        files = restore.missing(entries, core.of(entries, payload.get("cwd"), _home(environ)))
         if not files or time.monotonic() >= deadline:
             return files
         time.sleep(STEP)

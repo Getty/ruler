@@ -1,6 +1,6 @@
 {
   "name": "ruler",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Keeps CLAUDE.md and the rules without paths in context across every compaction, and their copies out of the compaction summary.",
   "author": {
     "name": "Torsten Raudssus",

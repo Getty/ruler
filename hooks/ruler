@@ -3,6 +3,14 @@
 #
 # PostToolBatch and UserPromptSubmit fire all the time but matter only right
 # after a compaction, so they leave here unless a session is marked pending.
+#
+# On Windows, Claude Code starts hooks/ruler.exe (winlaunch) instead, which
+# does the same from these lines:
+# winlaunch: env PYTHONPATH={root}/lib
+# winlaunch: env PYTHONDONTWRITEBYTECODE=1
+# winlaunch: skip PostToolBatch unless {data}/pending/*
+# winlaunch: skip UserPromptSubmit unless {data}/pending/*
+# winlaunch: run python -s -m ruler.hook
 
 [ -n "$CLAUDE_PLUGIN_DATA" ] || exit 0
 

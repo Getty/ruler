@@ -37,7 +37,8 @@ def derive(entries):
         for entry in found:
             if entry.get("load_reason") != "include":
                 continue
-            if entry.get("parent_file_path") in seen and entry["file_path"] not in seen:
+            parent = entry.get("parent_file_path")
+            if parent and key(parent) in seen and key(entry["file_path"]) not in seen:
                 _add(core, seen, entry["file_path"])
                 changed = True
     return core
@@ -66,7 +67,7 @@ def of(entries, cwd, home=None):
     if has_session_start(entries):
         return core
     merged = discover(cwd, home) if cwd else []
-    seen = set(merged)
+    seen = {key(path) for path in merged}
     for path in core:
         _add(merged, seen, path)
     return merged
@@ -114,7 +115,7 @@ def read_text(path):
 
 
 def _collect(path, home, core, seen, hops):
-    if path in seen:
+    if key(path) in seen:
         return
     text = read_text(path)
     if text is None:
@@ -170,7 +171,14 @@ def _resolve(target, base, home):
     return os.path.normpath(os.path.join(base, target))
 
 
+def key(path):
+    """What makes two paths the same file: on Windows case and slash direction
+    do not count (Claude Code reports C:\\x\\CLAUDE.md, an @import may name
+    c:/x/claude.md). On Linux and macOS the path itself."""
+    return os.path.normcase(path)
+
+
 def _add(core, seen, path):
-    if path not in seen:
-        seen.add(path)
+    if key(path) not in seen:
+        seen.add(key(path))
         core.append(path)

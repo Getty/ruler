@@ -58,7 +58,11 @@ Or load it from a checkout, without a marketplace:
 claude --plugin-dir /path/to/ruler
 ```
 
-It needs `python3` on `PATH` and nothing else. Without it, ruler does nothing.
+It needs Python 3 on `PATH` and nothing else: `python3` on Linux and macOS; on
+Windows `python3`, `python` or the `py` launcher (the Microsoft Store stub does
+not count). Without it, ruler does nothing. On Windows the hooks start through
+`hooks/ruler.exe`, a small launcher that reads its instructions from the
+`# winlaunch:` lines of `hooks/ruler`; Git Bash is not needed.
 
 ## Keep the core small
 

@@ -27,11 +27,43 @@ def append(data, session_id, entry):
     path = log_path(data, session_id)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     line = json.dumps(entry, separators=(",", ":")) + "\n"
+    if os.name == "nt":
+        _append_windows(path, line.encode("utf-8"))
+        return
     fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
     try:
         os.write(fd, line.encode("utf-8"))
     finally:
         os.close(fd)
+
+
+def _append_windows(path, data):
+    """O_APPEND is emulated by the C runtime on Windows (seek, then write), so
+    concurrent hooks overwrite each other's lines. A handle opened with append
+    access only makes every WriteFile land at the end, atomically."""
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateFileW.restype = wintypes.HANDLE
+    kernel32.CreateFileW.argtypes = (
+        wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
+        wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE)
+    kernel32.WriteFile.argtypes = (
+        wintypes.HANDLE, wintypes.LPCVOID, wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID)
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    file_append_data, share_all, open_always, normal = 0x4, 0x7, 4, 0x80
+    handle = kernel32.CreateFileW(path, file_append_data, share_all, None,
+                                  open_always, normal, None)
+    if handle in (None, ctypes.c_void_p(-1).value):
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        written = wintypes.DWORD()
+        if not kernel32.WriteFile(handle, data, len(data), ctypes.byref(written), None):
+            raise ctypes.WinError(ctypes.get_last_error())
+    finally:
+        kernel32.CloseHandle(handle)
 
 
 def read(data, session_id):
