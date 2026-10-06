@@ -1,0 +1,22 @@
+Revision history for ruler
+
+{{$NEXT}}
+
+0.1.1     2026-10-06 05:22:17Z
+  - Windows: ruler runs without Git Bash. Claude Code starts `hooks/ruler.exe`
+    there, a small launcher that reads the `# winlaunch:` lines of
+    `hooks/ruler` and runs the hook with the first working Python (`python3`,
+    `python`, `py -3`; the Microsoft Store stub is skipped). Linux and macOS
+    start the script as before.
+  - Windows: two spellings of one path count as the same file, whatever their
+    case and slash direction, so an instruction file Claude Code reports as
+    `C:\x\CLAUDE.md` is not attached again as `c:/x/claude.md`.
+  - With `HOME` unset, ruler uses the platform's home directory.
+  - The hooks are declared in exec form: `hooks/ruler` with the event as its
+    argument, started without a shell.
+
+0.1.0     2026-09-29 20:37:43Z
+  - Initial release: keeps `CLAUDE.md`, the rules without `paths:` and their
+    `@import`s in context across compactions. Before one it names the files
+    that come back from disk, so their content stays out of the summary;
+    after one it attaches those Claude Code did not report as reloaded.
